@@ -1,1 +1,160 @@
-Hello World
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HoleTrapBus Deep Links</title>
+  <style>
+    :root {
+      --max-w: 560px;
+      --radius: 14px;
+      --gap: clamp(10px, 2vw, 16px);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.5;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: grid;
+      place-items: center;
+      padding: max(16px, env(safe-area-inset-top))
+               max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom))
+               max(16px, env(safe-area-inset-left));
+    }
+    .wrap { width: min(92vw, var(--max-w)); }
+    header h1 {
+      margin: 0 0 6px 0;
+      font-size: clamp(20px, 2.2vw + 0.8rem, 28px);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    header p {
+      margin: 0 0 18px 0;
+      font-size: clamp(13px, 1vw + 0.6rem, 16px);
+      opacity: .8;
+    }
+
+    .grid { display: grid; gap: var(--gap); }
+
+    .btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: .2px;
+      padding: clamp(12px, 1.2vw + 10px, 18px);
+      font-size: clamp(16px, 1.3vw + .8rem, 20px);
+      border-radius: var(--radius);
+      background: #e2e8f0;
+      color: #0f172a;
+      box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 6px 20px rgba(0,0,0,.35);
+      transition: transform .06s ease, filter .2s ease, background .2s ease, color .2s ease;
+      border: 0;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.98); }
+
+    /* Trạng thái nút toggle */
+    .toggle .status {
+      display: inline-flex;
+      align-items: center;
+      gap: .5em;
+      padding: .2em .7em;
+      border-radius: 999px;
+      font-weight: 700;
+      line-height: 1.1;
+      background: rgba(0,0,0,.12);
+    }
+    .toggle.is-on {
+      background: #22c55e; color: #052e16;
+    }
+    .toggle.is-on .status { background: rgba(0,0,0,.08); }
+    .toggle.is-off {
+      background: #cbd5e1; color: #0f172a;
+    }
+
+    /* Light mode auto */
+    @media (prefers-color-scheme: light) {
+      body { background: #f8fafc; color: #0f172a; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>HoleTrapBus Deep Links</h1>
+      <p>Bấm để bật/tắt nhanh và mở app qua <code>holetrapbus://</code>.</p>
+    </header>
+
+    <section class="grid">
+      <!-- MỖI CÁI CHỈ 1 NÚT: bấm là đổi ON/OFF và gọi deep-link -->
+      <button class="btn toggle is-off" data-key="ADS" aria-pressed="false">
+        <span class="label">Debug Ads:</span>
+        <span class="status"><span class="dot">●</span><span class="text">OFF</span></span>
+      </button>
+
+      <button class="btn toggle is-off" data-key="HACK" aria-pressed="false">
+        <span class="label">Hack:</span>
+        <span class="status"><span class="dot">●</span><span class="text">OFF</span></span>
+      </button>
+
+      <!-- Hành động đơn -->
+      <a class="btn" href="holetrapbus://mainactivity?PLAY">Visit Play Game!</a>
+      <a class="btn" href="holetrapbus://mainactivity?IAP">Visit IAP Game!</a>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const LS_KEY = 'holetrapbus_toggles';
+      const defaultState = { ADS: 0, HACK: 0 }; // đổi mặc định nếu cần
+
+      // đọc/trộn state
+      const saved = (() => {
+        try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+      })();
+      const state = { ...defaultState, ...saved };
+
+      const openDeepLink = (key, val) => {
+        const url = `holetrapbus://mainactivity?CHECK=${key}=${val}`;
+        // cập nhật label trước khi chuyển app
+        setTimeout(() => { window.location.href = url; }, 10);
+      };
+
+      const updateButtonUI = (btn, isOn) => {
+        btn.classList.toggle('is-on', isOn);
+        btn.classList.toggle('is-off', !isOn);
+        btn.setAttribute('aria-pressed', String(isOn));
+        const textEl = btn.querySelector('.status .text');
+        if (textEl) textEl.textContent = isOn ? 'ON' : 'OFF';
+      };
+
+      // khởi tạo UI theo state
+      document.querySelectorAll('.toggle').forEach(btn => {
+        const key = btn.dataset.key;
+        const isOn = !!state[key];
+        updateButtonUI(btn, isOn);
+
+        btn.addEventListener('click', () => {
+          const next = state[key] ? 0 : 1;   // toggle
+          state[key] = next;
+          // lưu lại
+          try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+          // cập nhật UI
+          updateButtonUI(btn, !!next);
+          // mở deep link
+          openDeepLink(key, next);
+        }, { passive: true });
+      });
+    })();
+  </script>
+</body>
+</html>
+
